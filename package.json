@@ -1,0 +1,14 @@
+{
+  "name": "shapeweaver",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "dev:web": "npm --prefix frontend run dev",
+    "build:web": "npm --prefix frontend run build",
+    "preview:web": "npm --prefix frontend run preview"
+  }
+}
+
