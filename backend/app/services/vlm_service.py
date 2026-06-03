@@ -102,6 +102,79 @@ def _coerce_label_list(value: Any) -> list[str]:
     return result
 
 
+def _build_vlm_payload(model: str, image_base64: str, prompt: str) -> dict[str, Any]:
+    return {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "Return strict JSON only. "
+                    "recognizedText is the top priority and should contain the Chinese problem statement."
+                ),
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{image_base64}"},
+                    },
+                ],
+            },
+        ],
+        "temperature": 0.1,
+    }
+
+
+def _build_json_repair_payload(model: str, raw_message: str) -> dict[str, Any]:
+    repair_prompt = (
+        "请把下面这段立体几何题图识别结果修复为严格 JSON。"
+        "只输出 JSON，不要 markdown，不要解释。"
+        "JSON 键必须包含 recognizedText、diagramSummary、candidateShape、pointLabels、"
+        "hiddenEdgeSuggestions、baseFaceLabels、apexLabel、warnings。"
+        "candidateShape 必须是 cuboid、prism、pyramid、unknown 之一。"
+        "数组字段如果没有内容就填空数组，apexLabel 没有就填空字符串。"
+        f"\n\n原始内容：\n{raw_message[:4000]}"
+    )
+    return {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "Repair the user content into strict JSON only.",
+            },
+            {
+                "role": "user",
+                "content": repair_prompt,
+            },
+        ],
+        "temperature": 0,
+    }
+
+
+def _call_vlm_json(api_url: str, api_key: str, payload: dict[str, Any]) -> tuple[Optional[str], Optional[Dict[str, Any]]]:
+    req = request.Request(
+        _normalize_api_url(api_url),
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with request.urlopen(req, timeout=20.0) as response:
+        data = json.loads(response.read().decode("utf-8"))
+
+    message = data["choices"][0]["message"]["content"]
+    if isinstance(message, list):
+        text_parts = [part.get("text", "") for part in message if isinstance(part, dict)]
+        message = "\n".join(part for part in text_parts if part)
+    raw_message = message if isinstance(message, str) else ""
+    return raw_message, _extract_json_block(raw_message)
+
+
 def extract_vlm_hints(
     image_bytes: bytes,
 ) -> tuple[Optional[str], Optional[str], Optional[ShapeType], list[str], list[str], list[str], Optional[str], list[str]]:
@@ -126,55 +199,31 @@ def extract_vlm_hints(
         "不要输出 markdown，不要解释，只输出 JSON。"
     )
 
-    payload = {
-        "model": settings.model,
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "Return strict JSON only. "
-                    "recognizedText is the top priority and should contain the Chinese problem statement."
-                ),
-            },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64,{image_base64}"},
-                    },
-                ],
-            },
-        ],
-        "temperature": 0.1,
-    }
-
     try:
-        req = request.Request(
-            _normalize_api_url(settings.api_url),
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {settings.api_key}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
+        raw_message, parsed = _call_vlm_json(
+            settings.api_url,
+            settings.api_key,
+            _build_vlm_payload(settings.model, image_base64, prompt),
         )
-        with request.urlopen(req, timeout=20.0) as response:
-            data = json.loads(response.read().decode("utf-8"))
     except (error.URLError, error.HTTPError, TimeoutError, socket.timeout, ValueError, Exception):
         return None, None, None, [], [], [], None, ["Configured VLM request failed; local heuristic recognition was used instead."]
 
-    try:
-        message = data["choices"][0]["message"]["content"]
-        if isinstance(message, list):
-            text_parts = [part.get("text", "") for part in message if isinstance(part, dict)]
-            message = "\n".join(part for part in text_parts if part)
-        raw_message = message if isinstance(message, str) else ""
-        parsed = _extract_json_block(raw_message)
-    except Exception:
-        raw_message = ""
-        parsed = None
+    repair_warnings: list[str] = []
+    if not parsed and raw_message:
+        try:
+            repaired_raw_message, repaired = _call_vlm_json(
+                settings.api_url,
+                settings.api_key,
+                _build_json_repair_payload(settings.model, raw_message),
+            )
+            if repaired:
+                raw_message = repaired_raw_message or raw_message
+                parsed = repaired
+                repair_warnings.append("VLM returned non-standard content; a JSON repair retry was applied.")
+            else:
+                repair_warnings.append("VLM JSON repair retry did not return usable JSON; best-effort fallback was used.")
+        except (error.URLError, error.HTTPError, TimeoutError, socket.timeout, ValueError, Exception):
+            repair_warnings.append("VLM JSON repair retry failed; best-effort local fallback was used.")
 
     if not parsed:
         text_candidates = _extract_chinese_text_candidates(raw_message)
@@ -182,9 +231,13 @@ def extract_vlm_hints(
         diagram_summary = text_candidates[1] if len(text_candidates) > 1 else None
         if recognized_text or diagram_summary:
             return recognized_text, diagram_summary, None, [], [], [], None, [
+                *repair_warnings,
                 "VLM returned non-standard content; best-effort text extraction was applied.",
             ]
-        return None, None, None, [], [], [], None, ["Configured VLM returned an unreadable response; local heuristic recognition was used instead."]
+        return None, None, None, [], [], [], None, [
+            *repair_warnings,
+            "Configured VLM returned an unreadable response; local heuristic recognition was used instead.",
+        ]
 
     recognized_text = _fallback_text_from_parsed(parsed)
     diagram_summary = _fallback_summary_from_parsed(parsed)
@@ -196,7 +249,7 @@ def extract_vlm_hints(
     warnings = parsed.get("warnings", [])
     if not isinstance(warnings, list):
         warnings = []
-    normalized_warnings = [str(item) for item in warnings]
+    normalized_warnings = [*repair_warnings, *[str(item) for item in warnings]]
 
     if not recognized_text and raw_message:
         text_candidates = _extract_chinese_text_candidates(raw_message)

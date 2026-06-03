@@ -51,7 +51,7 @@ function App() {
         <header className="mb-6 flex items-center justify-between rounded-3xl border border-white/70 bg-white/75 px-6 py-5 shadow-panel backdrop-blur">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Educational Geometry MVP</div>
-            <h1 className="mt-1 text-3xl font-semibold text-ink">ShapeWeaver</h1>
+            <h1 className="mt-1 text-3xl font-semibold text-ink">GeoWeaver</h1>
             <p className="mt-2 text-sm text-slate-500">
               Recognize a solid-geometry problem from an image or build a teaching model by hand.
             </p>

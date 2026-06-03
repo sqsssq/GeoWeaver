@@ -73,9 +73,14 @@ def recognize_diagram(image_bytes: bytes, filename: str, use_ai: bool = False) -
         warnings.extend(vlm_warnings)
         if vlm_apex_label:
             apex_label = vlm_apex_label
-    else:
-        recognized_text, ocr_warnings = extract_text(image_bytes)
-        warnings.extend(ocr_warnings)
+
+    recognized_text, ocr_warnings = extract_text(image_bytes)
+    if use_ai:
+        if vlm_text and recognized_text:
+            warnings.append("Local OCR was also run to support AI fallback and text comparison.")
+        elif not vlm_text:
+            warnings.append("AI did not return usable problem text; local OCR fallback was used.")
+    warnings.extend(ocr_warnings)
 
     array = np.frombuffer(image_bytes, dtype=np.uint8)
     image = cv2.imdecode(array, cv2.IMREAD_COLOR)

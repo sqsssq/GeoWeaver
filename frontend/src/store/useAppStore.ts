@@ -57,7 +57,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   recognizedDiagram: undefined,
   geometryModel: undefined,
   selection: {},
-  editMode: true,
+  editMode: false,
   warnings: ["Start with a template or upload an image to build a demo model."],
   isRecognizing: false,
   isGenerating: false,
@@ -114,7 +114,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       recognizedDiagram: undefined,
       geometryModel: undefined,
       selection: {},
-      editMode: true,
+      editMode: false,
       lastGeneratedAt: undefined,
       lastGenerationSource: "initial",
       warnings: ["State reset. Upload a new image or start from a manual template."],
@@ -131,7 +131,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ isRecognizing: true, warnings: [] });
     try {
       const result = await recognizeImage(file, useAiAssistance);
-      console.log("[ShapeWeaver] recognize result", {
+      console.log("[GeoWeaver] recognize result", {
         useAiAssistance,
         result,
       });
@@ -165,6 +165,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         geometryModel: model,
         selectedTemplate: model.templateType,
         selection: {},
+        editMode: false,
         lastGeneratedAt: new Date().toLocaleTimeString(),
         lastGenerationSource: generationSource,
         warnings: [
@@ -176,6 +177,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (error) {
       set({
         geometryModel: createMockModel(selectedTemplate),
+        editMode: false,
         lastGeneratedAt: new Date().toLocaleTimeString(),
         lastGenerationSource: get().mode === "manual" ? "manual" : "recognition",
         warnings: [

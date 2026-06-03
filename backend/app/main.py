@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes.api import router as api_router
 
 
-app = FastAPI(title="ShapeWeaver API", version="0.1.0")
+app = FastAPI(title="GeoWeaver API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,4 +15,3 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api")
-

@@ -1,5 +1,5 @@
 {
-  "name": "shapeweaver",
+  "name": "geoweaver",
   "private": true,
   "version": "0.1.0",
   "workspaces": [
@@ -11,4 +11,3 @@
     "preview:web": "npm --prefix frontend run preview"
   }
 }
-

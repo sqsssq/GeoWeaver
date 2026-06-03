@@ -324,8 +324,8 @@ def generate_geometry_model(payload: GenerateModelRequest) -> GeometryModel3D:
     width_scale, height_scale = _infer_scale_from_diagram(recognized_diagram)
     labels = _structured_labels(recognized_diagram, len(model.vertices)) or _extract_labels(combined_text, len(model.vertices))
 
-    model = _apply_structured_face_hints(model, recognized_diagram)
     model = _apply_labels(model, labels)
+    model = _apply_structured_face_hints(model, recognized_diagram)
     model = _apply_geometry_bias(model, width_scale, height_scale, combined_text)
     model = _apply_structured_hidden_edges(model, recognized_diagram)
     model = _apply_hidden_edge_hints(model, combined_text)

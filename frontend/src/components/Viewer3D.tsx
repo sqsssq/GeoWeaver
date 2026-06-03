@@ -351,12 +351,21 @@ export function Viewer3D() {
           Reset Workspace
         </button>
       </div>
-      <div className="h-[720px] overflow-hidden rounded-3xl border border-slate-200 bg-[radial-gradient(circle_at_top,#ffffff,#dbeafe)]">
+      <div className="relative h-[720px] overflow-hidden rounded-3xl border border-slate-200 bg-[radial-gradient(circle_at_top,#ffffff,#dbeafe)]">
         <Canvas>
           <CameraRig ref={controlsRef} />
           <GeometryScene />
         </Canvas>
-        {!geometryModel ? (
+        {isGenerating ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[2px]">
+            <div className="max-w-md rounded-3xl border border-white/80 bg-white/90 px-6 py-5 text-center shadow-panel">
+              <div className="text-lg font-semibold text-ink">Generating 3D model</div>
+              <div className="mt-2 text-sm leading-6 text-slate-600">
+                Building a template-based geometry model from the current recognition or manual selection.
+              </div>
+            </div>
+          </div>
+        ) : !geometryModel ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="max-w-md rounded-3xl border border-white/80 bg-white/88 px-6 py-5 text-center shadow-panel backdrop-blur">
               <div className="text-lg font-semibold text-ink">No 3D model yet</div>
