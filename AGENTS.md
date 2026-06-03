@@ -86,7 +86,7 @@ Do not assume the framework, package manager, database, or architecture before c
 - Do not add unrelated features.
 - Do not add dependencies unless necessary.
 - Do not commit without human approval.
-- Do not push unless explicitly asked.
+- After a human-approved commit is created, push the current branch automatically unless the user explicitly says not to push.
 
 ---
 
@@ -269,7 +269,9 @@ When the user approves and asks to commit:
 4. Create a focused commit message.
 5. Commit only files related to the approved task.
 
-Do not push unless explicitly asked.
+After creating a human-approved commit, push the current branch automatically unless the user explicitly says not to push.
+
+If there are multiple remotes or the current branch has no upstream, stop and report the situation instead of guessing where to push.
 
 ---
 
@@ -287,3 +289,4 @@ A task is done only when:
 - human handoff summary is provided,
 - no unrelated features were added,
 - no unapproved commit was made.
+- human-approved commits are pushed automatically unless the user explicitly opted out.

@@ -94,42 +94,43 @@ Still being closed out:
 
 ### 1. Backend
 
-Create and activate a virtual environment if desired, then install requirements:
+Run the backend helper script from the project root:
 
 ```bash
-cd /Users/qingshi/Projects/GeoWeaver/backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+cd /Users/qingshi/Projects/GeoWeaver
+bash scripts/dev-backend.sh
 ```
 
-Run the API:
+The script creates `backend/.venv` when needed, installs backend dependencies, and starts the API at `http://127.0.0.1:8010`.
+
+To override the backend port:
 
 ```bash
-cd /Users/qingshi/Projects/GeoWeaver/backend
-source .venv/bin/activate
-uvicorn app.main:app --reload --port 8000
+PORT=8020 bash scripts/dev-backend.sh
 ```
-
-The backend will be available at `http://localhost:8000`.
 
 ### 2. Frontend
 
 Install frontend dependencies:
 
 ```bash
-cd /Users/qingshi/Projects/GeoWeaver/frontend
+cd /Users/qingshi/Projects/GeoWeaver
 npm install
 ```
 
 Run the Vite dev server:
 
 ```bash
-cd /Users/qingshi/Projects/GeoWeaver/frontend
-npm run dev
+npm run dev:web
 ```
 
-The frontend will be available at `http://localhost:5173`.
+The frontend will be available at `http://127.0.0.1:5174`.
+
+If you changed the backend port, point the frontend to it:
+
+```bash
+VITE_API_BASE_URL=http://127.0.0.1:8020/api npm run dev:web
+```
 
 ### 3. Root Convenience Commands
 
@@ -137,11 +138,12 @@ After installing dependencies you can also use the root scripts:
 
 ```bash
 npm install
+npm run dev:backend
 npm run dev:web
 npm run build:web
 ```
 
-The backend is still run with Python tooling from `backend/`.
+`dev:backend` starts the FastAPI service through `scripts/dev-backend.sh`.
 
 ## Verification
 
@@ -203,7 +205,7 @@ cd /Users/qingshi/Projects/GeoWeaver
 bash scripts/verify.sh
 ```
 
-Note: in the Codex sandbox, binding a local port like `127.0.0.1:8000` is restricted, so API runtime validation here used import and handler-level checks. On your local machine, the normal `uvicorn` command above should run as expected.
+Note: in the Codex sandbox, binding a local port like `127.0.0.1:8010` is restricted, so API runtime validation here used import and handler-level checks. On your local machine, the normal backend script above should run as expected.
 
 ## OCR Dependency Note
 
